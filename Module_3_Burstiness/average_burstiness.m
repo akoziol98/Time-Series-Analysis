@@ -24,102 +24,76 @@ babyCodes = unique(timeData.id);
 % Or import binary data
 importmat('binary_mani_t3.mat');
 
-%% Calculation and plots
 
-% Define the folder to save plots
-outputFolder = 'burstiness_plots';
+%% Calculation and plots in a loop
 
-% Create the folder if it doesn't exist
-if ~exist(outputFolder, 'dir')
-    mkdir(outputFolder);
-end
-
-% Initialize the output burstiness struct
 burstyData = table;
+ieiData = struct('id', [], 'iei_right', [], 'iei_left', [], 'iei_position', []);
 
-for i = 1:length(babyCodes)
+for i = 1:length(babyCodes)  
     current_id = babyCodes(i);
+    ieiData(i).id = current_id;
+
+    % List of column names to extract
+    columnsToExtract = {'inhand_right_child', 'inhand_left_child', 'Position'};
     
-    %1. Estimate burstiness and memory for right hand events
-    right_hand=binaryData(1, i).data.inhand_right_child;
-    
-    %Index onsets in spike train
-    ix_hand=find(right_hand');
-    
-    %Compute IEI distribution of onsets
-    iei_right_hand=diff(ix_hand);
-    
-    %Adjust IEI as per sample rate (40 Hz)
-    iei_right_hand=iei_right_hand/40;
-    
-    %Estimate Burstiness (as per Goh & Barabasi)
-    burstiness_right_hand=(std(iei_right_hand)-mean(iei_right_hand))/(std(iei_right_hand)+mean(iei_right_hand));
-    
-    %Estimate Memory (lag-1 ACF)
-    memory_right_hand=acf(iei_right_hand',1);
-    
-    
-    
-    %2. Estimate burstiness and memory for left hand events
-    left_hand=binaryData(1, i).data.inhand_left_child;
-    
-    %Index onsets in spike train
-    ix_left_hand=find(left_hand');
-    
-    %Compute IEI distribution of onsets
-    iei_left_hand=diff(ix_left_hand);
-    
-    %Adjust IEI as per sample rate (40 Hz)
-    iei_left_hand=iei_left_hand/40;
-    
-    %Estimate Burstiness (as per Goh & Barabasi)
-    burstiness_left_hand=(std(iei_left_hand)-mean(iei_left_hand))/(std(iei_left_hand)+mean(iei_left_hand));
-    
-    %Estimate Memory (lag-1 ACF)
-    memory_left_hand=acf(iei_left_hand',1);
-    
-    %2.5. Estimate burstiness and memory for position events
-    position=binaryData(1, i).data.Position;
-    
-    %Index onsets in spike train
-    ix_position=find(position');
-    
-    %Compute IEI distribution of onsets
-    iei_position=diff(ix_position);
-    
-    %Adjust IEI as per sample rate (40 Hz)
-    iei_position=iei_position/40;
-    
-    %Estimate Burstiness (as per Goh & Barabasi)
-    burstiness_position=(std(iei_position)-mean(iei_position))/(std(iei_position)+mean(iei_position));
-    
-    %Estimate Memory (lag-1 ACF)
-    memory_position=acf(iei_position',1);
-    
-    
-    
-    %3. Simulate periodic-ish signal
-    a = 95;b = 105; r = (b-a).*rand(100,1) + a;
-    iei_periodic=round(r);
-    
-    %Estimate Burstiness (as per Goh & Barabasi)
-    burstiness_periodic=(std(iei_periodic)-mean(iei_periodic))/(std(iei_periodic)+mean(iei_periodic));
-    
-    %Estimate Memory (lag-1 ACF)
-    memory_periodic=acf(iei_periodic,1);
-    
-    
-    
-    %4. Simulate random (poisson process) signal
-    mu = 1;
-    iei_random = exprnd(mu,100,1);
-    
-    %Estimate Burstiness (as per Goh & Barabasi)
-    burstiness_random=(std(iei_random)-mean(iei_random))/(std(iei_random)+mean(iei_random));
-    
-    %Estimate Memory (lag-1 ACF)
-    memory_random=acf(iei_random,1);
-    
+    % Loop through each column name
+    for j = 1:length(columnsToExtract)
+        
+        % Get the current column name
+        columnName = columnsToExtract{j};
+        
+        % Extract the data as a vector for the current column
+        extractedData = binaryData(1, i).data.(columnName);
+        if sum(extractedData) == 0 || sum(extractedData) == 1
+            if strcmp(columnName, 'inhand_right_child')
+            memory_right_hand = NaN;
+            burstiness_right_hand = NaN;
+            
+        elseif strcmp(columnName, 'inhand_left_child')
+            memory_left_hand = NaN;
+            burstiness_left_hand = NaN;
+            
+        elseif strcmp(columnName, 'Position')
+            memory_position = NaN;
+            burstiness_position = NaN;
+           
+        end
+            continue
+        end
+        
+        %Index onsets in spike train
+        ix=find(extractedData');
+        
+        %Compute IEI distribution of onsets
+        iei=diff(ix);
+        
+        %Adjust IEI as per sample rate (40 Hz)
+        iei=iei/40;
+        
+        %Estimate Burstiness (as per Goh & Barabasi)
+        burstiness=(std(iei)-mean(iei))/(std(iei)+mean(iei));
+        
+        %Estimate Memory (lag-1 ACF)
+        memory=acf(iei',1);
+        
+        if strcmp(columnName, 'inhand_right_child')
+            memory_right_hand = memory;
+            burstiness_right_hand = burstiness;
+            ieiData(i).iei_right = iei;
+            
+        elseif strcmp(columnName, 'inhand_left_child')
+            memory_left_hand = memory;
+            burstiness_left_hand = burstiness;
+            ieiData(i).iei_left = iei;
+
+        elseif strcmp(columnName, 'Position')
+            memory_position = memory;
+            burstiness_position = burstiness;
+            ieiData(i).iei_position = iei;
+
+        end
+    end
     % Combine the original index and id with the bursty tables
     burstyData.id(i) = current_id;
     burstyData.MemoryRight(i) = memory_right_hand;
@@ -128,10 +102,6 @@ for i = 1:length(babyCodes)
     burstyData.BurstyLeft(i) = burstiness_left_hand;
     burstyData.MemoryPosition(i) = memory_position;
     burstyData.BurstyPosition(i) = burstiness_position;
-    
-    
 end
-
-%6. Great job!
-%% Average the burstiness
-burstyData(:).data(:,'MemoryLeft')
+save('burstyData_mani_T3.mat', 'burstyData');
+save('ieiData_mani_T3.mat', 'ieiData');

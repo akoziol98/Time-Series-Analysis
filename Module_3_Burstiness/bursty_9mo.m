@@ -19,13 +19,18 @@ timeData=importfile('timeData.csv'); % 40 Hz
 babyCodes = unique(timeData.id);
 
 %Transform to binary spikes
-%binaryData = binarizeTimeData(timeData, babyCodes);
+binaryData = binarizeTimeData(timeData, babyCodes);
+binaryDataLabel = binarizeTimeDataLabel(timeData, babyCodes);
 
 % Or import binary data
 importmat('binary_mani_t3.mat');
 
-
 %% Calculation and plots in a loop
+%Import data for plotting
+importmat('burstyData_mani_T3.mat');
+importmat('ieiData_mani_T3.mat');
+importmat('label_table_T3.mat');
+importmat('binaryDataLabel_T3.mat');
 
 % Define the folder to save plots
 outputFolder = 'burstiness_plots';
@@ -34,12 +39,9 @@ outputFolder = 'burstiness_plots';
 if ~exist(outputFolder, 'dir')
     mkdir(outputFolder);
 end
-burstyData = table;
+
 for i = 1:length(babyCodes)
     current_id = babyCodes(i);
-    r_c = 0;
-    p_c = 0;
-    l_c = 0;
     
     % List of column names to extract
     columnsToExtract = {'inhand_right_child', 'inhand_left_child', 'Position'};
@@ -54,44 +56,19 @@ for i = 1:length(babyCodes)
         % Get the current column name
         columnName = columnsToExtract{j};
         
-        % Extract the data as a vector for the current column
-        extractedData = binaryData(1, i).data.(columnName);
-        if sum(extractedData) == 0 || sum(extractedData) == 1
-            if strcmp(columnName, 'inhand_right_child')
-            memory_right_hand = NaN;
-            burstiness_right_hand = NaN;
-            
-        elseif strcmp(columnName, 'inhand_left_child')
-            memory_left_hand = NaN;
-            burstiness_left_hand = NaN;
-            
-        elseif strcmp(columnName, 'Position')
-            memory_position = NaN;
-            burstiness_position = NaN;
-           
-        end
-            continue
-        end
-        
-        %Index onsets in spike train
-        ix=find(extractedData');
-        
-        %Compute IEI distribution of onsets
-        iei=diff(ix);
-        
-        %Adjust IEI as per sample rate (40 Hz)
-        iei=iei/40;
-        
-        %Estimate Burstiness (as per Goh & Barabasi)
-        burstiness=(std(iei)-mean(iei))/(std(iei)+mean(iei));
-        
-        %Estimate Memory (lag-1 ACF)
-        memory=acf(iei',1);
         
         if strcmp(columnName, 'inhand_right_child')
-            memory_right_hand = memory;
-            burstiness_right_hand = burstiness;
-            r_c = r_c + 1;
+            if isnan(burstyData.MemoryRight(i))
+                memory_right_hand = NaN;
+                burstiness_right_hand = NaN;
+                iei = NaN;
+                continue
+            end
+            % Extract the data as a vector for the current column
+            memory_right_hand = burstyData.MemoryRight(i);
+            burstiness_right_hand = burstyData.BurstyRight(i);
+            iei = ieiData(1, i).iei_right;
+            
             subplot(1,4,1)
             hist(iei,10)
             title('IEI Distribution for Right Hand Events')
@@ -101,9 +78,16 @@ for i = 1:length(babyCodes)
             ylim([0 100])
             
         elseif strcmp(columnName, 'inhand_left_child')
-            memory_left_hand = memory;
-            burstiness_left_hand = burstiness;
-            l_c = l_c + 1;
+            if isnan(burstyData.MemoryLeft(i))
+                memory_left_hand = NaN;
+                burstiness_left_hand = NaN;
+                iei = NaN;
+                continue
+            end
+            memory_left_hand = burstyData.MemoryLeft(i);
+            burstiness_left_hand = burstyData.BurstyLeft(i);
+            iei = ieiData(1, i).iei_left;
+            
             subplot(1,4,2)
             hist(iei,10)
             title('IEI Distribution for Left Hand Events')
@@ -111,10 +95,18 @@ for i = 1:length(babyCodes)
             ylabel('Count')
             xlim([0 100])
             ylim([0 100])
+            
         elseif strcmp(columnName, 'Position')
-            memory_position = memory;
-            burstiness_position = burstiness;
-            p_c = p_c + 1;
+            if isnan(burstyData.MemoryPosition(i))
+                memory_position = NaN;
+                burstiness_position = NaN;
+                iei = NaN;
+                continue
+            end
+            memory_position = burstyData.MemoryPosition(i);
+            burstiness_position = burstyData.BurstyPosition(i);
+            iei = ieiData(1, i).iei_position;
+            
             subplot(1,4,3)
             hist(iei,10)
             title('IEI Distribution for Body Position Events')
@@ -124,12 +116,26 @@ for i = 1:length(babyCodes)
             ylim([0 100])
         end
     end
-    % Combine the original index and id with the bursty tables
-    if r_c == p_c == l_c == 1
-        gbgbg=1;
-    else
-        disp('error')
-    end
+    
+    %3. Simulate periodic-ish signal
+    a = 95;b = 105; r = (b-a).*rand(100,1) + a;
+    iei_periodic=round(r);
+    
+    %Estimate Burstiness (as per Goh & Barabasi)
+    burstiness_periodic=(std(iei_periodic)-mean(iei_periodic))/(std(iei_periodic)+mean(iei_periodic));
+    
+    %Estimate Memory (lag-1 ACF)
+    memory_periodic=acf(iei_periodic,1);
+    
+    %4. Simulate random (poisson process) signal
+    mu = 1;
+    iei_random = exprnd(mu,100,1);
+    
+    %Estimate Burstiness (as per Goh & Barabasi)
+    burstiness_random=(std(iei_random)-mean(iei_random))/(std(iei_random)+mean(iei_random));
+    
+    %Estimate Memory (lag-1 ACF)
+    memory_random=acf(iei_random,1);
     
     subplot(1,4,4)
     scatter(memory_right_hand,burstiness_right_hand, 'MarkerFaceColor', '#549ba2')
@@ -154,11 +160,4 @@ for i = 1:length(babyCodes)
     % Close the figure to avoid cluttering
     clf; close all;
     
-    burstyData.id(i) = current_id;
-    burstyData.MemoryRight(i) = memory_right_hand;
-    burstyData.BurstyRight(i) = burstiness_right_hand;
-    burstyData.MemoryLeft(i) = memory_left_hand;
-    burstyData.BurstyLeft(i) = burstiness_left_hand;
-    burstyData.MemoryPosition(i) = memory_position;
-    burstyData.BurstyPosition(i) = burstiness_position;
 end
