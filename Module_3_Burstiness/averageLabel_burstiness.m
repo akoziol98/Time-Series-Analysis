@@ -13,26 +13,26 @@
 
 %% Import and transform data to binary
 % Import
-timeData=importfile('timeData.csv'); % 40 Hz
+%timeData=importfile('timeData.csv'); % 40 Hz
 
 % Get the unique IDs
-babyCodes = unique(timeData.id);
+%babyCodes = unique(timeData.id);
 
 %Transform to binary spikes
 %binaryData = binarizeTimeData(timeData, babyCodes);
 
 % Or import binary data
-importmat('binary_mani_t3.mat');
-
+importmat('babyCodes.mat');
+importmat('binaryDataLabel_T3.mat');
 
 %% Calculation and plots in a loop
+binaryDataLabel.data
+burstyLabelData = table;
+ieiLabelData = struct('id', [], 'iei_right', [], 'iei_left', [], 'iei_position', []);
 
-burstyData = table;
-for i = 1:length(babyCodes)
-    ieiData = struct('id', [], 'iei', []);
-    
+for i = 1:length(babyCodes)  
     current_id = babyCodes(i);
-    ieiData(i).id = current_id;
+    ieiLabelData(i).id = current_id;
 
     % List of column names to extract
     columnsToExtract = {'inhand_right_child', 'inhand_left_child', 'Position'};
@@ -80,27 +80,28 @@ for i = 1:length(babyCodes)
         if strcmp(columnName, 'inhand_right_child')
             memory_right_hand = memory;
             burstiness_right_hand = burstiness;
-            ieiData(i).iei_right = iei;
+            ieiLabelData(i).iei_right = iei;
             
         elseif strcmp(columnName, 'inhand_left_child')
             memory_left_hand = memory;
             burstiness_left_hand = burstiness;
-            burstyData.IEI_left(i) = iei;
+            ieiLabelData(i).iei_left = iei;
 
         elseif strcmp(columnName, 'Position')
             memory_position = memory;
             burstiness_position = burstiness;
-            burstyData.IEI_left(i) = iei;
+            ieiLabelData(i).iei_position = iei;
 
         end
     end
     % Combine the original index and id with the bursty tables
-    burstyData.id(i) = current_id;
-    burstyData.MemoryRight(i) = memory_right_hand;
-    burstyData.BurstyRight(i) = burstiness_right_hand;
-    burstyData.MemoryLeft(i) = memory_left_hand;
-    burstyData.BurstyLeft(i) = burstiness_left_hand;
-    burstyData.MemoryPosition(i) = memory_position;
-    burstyData.BurstyPosition(i) = burstiness_position;
+    burstyLabelData.id(i) = current_id;
+    burstyLabelData.MemoryRight(i) = memory_right_hand;
+    burstyLabelData.BurstyRight(i) = burstiness_right_hand;
+    burstyLabelData.MemoryLeft(i) = memory_left_hand;
+    burstyLabelData.BurstyLeft(i) = burstiness_left_hand;
+    burstyLabelData.MemoryPosition(i) = memory_position;
+    burstyLabelData.BurstyPosition(i) = burstiness_position;
 end
-save('burstyData.mat', 'burstyData');
+save('burstyData_mani_T3.mat', 'burstyData');
+save('ieiData_mani_T3.mat', 'ieiData');
