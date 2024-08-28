@@ -30,7 +30,7 @@ importmat('burstyLabelData_mani_T3.mat');
 %importmat('ieiData_mani_T3.mat');
 importmat('babyCodes.mat');
 toys = {'bubbles', 'dino', 'klickity', 'spinner'};
-icis_colors = ["#2bc3db","#bfd739", "#fdb718", "#ef3c43"]; % Colors for each toy
+icis_colors = ["#2bc3db","#2bc3db", "#fdb718", "#fdb718"]; % Colors for each toy
 outputFolder = 'burstiness_plots/toys';
 
 % Define marker shapes for right and left hands
@@ -141,7 +141,7 @@ for t = 1:length(toys)
         set(spinner_handles, 'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
     end
 % Save the figure in high quality
-fileName = fullfile(outputFolder, sprintf('burstiness_%s.png', toy_name));
+fileName = fullfile(outputFolder, sprintf('burstiness_%d.png', toy_name));
     
     % Save the figure in high quality
     saveas(fig, fileName);

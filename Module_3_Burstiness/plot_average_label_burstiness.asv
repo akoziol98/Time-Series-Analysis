@@ -26,16 +26,16 @@ importmat('binary_mani_t3.mat');
 
 %% Calculation and plots in a loop
 %Import data for plotting
-importmat('burstyData_mani_T3.mat');
+importmat('burstyLabelData_mani_T3.mat');
 %importmat('ieiData_mani_T3.mat');
 importmat('babyCodes.mat');
+toys = {'bubbles', 'dino', 'klickity', 'spinner'};
+icis_colors = ["#2bc3db","#bfd739", "#fdb718", "#ef3c43"]; % Colors for each toy
+outputFolder = 'burstiness_plots/toys';
 
-memory_right_hand = burstyData.MemoryRight;
-memory_left_hand = burstyData.MemoryLeft;
-memory_position = burstyData.MemoryPosition;
-burstiness_right_hand = burstyData.BurstyRight;
-burstiness_left_hand = burstyData.BurstyLeft;
-burstiness_position = burstyData.BurstyPosition;
+% Define marker shapes for right and left hands
+marker_shapes = {'o', '^'}; % 'o' for right hand, '^' for left hand
+
 %3. Simulate periodic-ish signal
 a = 95;b = 105; r = (b-a).*rand(100,1) + a;
 iei_periodic=round(r);
@@ -58,25 +58,97 @@ memory_random=acf(iei_random,1);
 
 fig = figure('Position', [300, 300, 1100, 800]);
 %fig = figure('Visible', 'off', 'Position', [300, 300, 1500, 800]);
-
-scatter(memory_right_hand,burstiness_right_hand, 'MarkerFaceColor', '#549ba2')
 hold on
-scatter(memory_left_hand,burstiness_left_hand, 'MarkerFaceColor', '#DBCFB0', 'MarkerEdgeColor', '#DBCFB0')
-scatter(memory_position,burstiness_position,'MarkerFaceColor', '#4F517D','MarkerEdgeColor', '#4F517D')
-scatter(memory_periodic,burstiness_periodic, 50, 'MarkerFaceColor', '#BD6B73','MarkerEdgeColor', '#BD6B73')
-scatter(memory_random,burstiness_random, 50, 'MarkerFaceColor', 'black','MarkerEdgeColor', 'black')
-yline(0, '--', 'random','LineWidth',3);
+% Initialize handles for legend entries
+toy_handles = gobjects(1, length(toys));
+hand_handles = gobjects(1, 2);
+
+% Loop through each toy
+for t = 1:length(toys)
+    toy_name = toys{t};
+    toy_color = icis_colors(t); % Get color for the toy
+    data = burstyLabelData.(toy_name); % Extract data for the current toy
+    
+    % Plot Right Hand data
+    h_right = scatter(data.MemoryRight, data.BurstyRight, 60, 'filled', ...
+        'MarkerFaceColor', toy_color, 'Marker', marker_shapes{1}, 'MarkerEdgeColor', 'black',...
+        'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
+    
+    % Plot Left Hand data
+    h_left = scatter(data.MemoryLeft, data.BurstyLeft, 60, 'filled', ...
+        'MarkerFaceColor', toy_color, 'Marker', marker_shapes{2}, 'MarkerEdgeColor', ...
+        'black', 'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
+    
+    % Store handles for the first toy to use in the legend
+
+    if strcmp(toy_name, 'bubbles')
+        bubbles_handles(1) = h_right;
+        bubbles_handles(2) = h_left;
+      
+    elseif strcmp(toy_name, 'dino')
+        dino_handles(1) = h_right;
+        dino_handles(2) = h_left;
+    
+    elseif strcmp(toy_name, 'klickity')
+        klickity_handles(1) = h_right;
+        klickity_handles(2) = h_left;
+    
+        elseif strcmp(toy_name, 'spinner')
+        spinner_handles(1) = h_right;
+        spinner_handles(2) = h_left;
+        
+    end
+    % Store handles for each toy color
+    toy_handles(t) = h_right; % Use h_right or h_left, doesn't matter, just to get the color
+end
+
+yline(burstiness_random, '--', 'random','LineWidth', 2);
+yline(burstiness_periodic, '--', 'periodic','LineWidth', 2);
+
 title('Burstiness/Memory Space')
 xlabel('Memory')
 ylabel('Burstiness')
 xlim([-1 1])
 ylim([-1 1])
-legend({'Right Hand', 'Left Hand', 'Position', 'Periodic', 'Random'});
 
+% Create legend for toys with colors
+toy_lgd = legend(toy_handles, {'Bubbles', 'Dino', 'Klickity', 'Spinner'}, 'Location', 'northeast');
+title(toy_lgd, 'Toy');
+% Create a separate legend for hand markers with black color
+%set(hand_handles, 'MarkerFaceColor','black');
+hand_lgd = legend(hand_handles, {'Right', 'Left'}, 'Location', 'west');
+title(hand_lgd, 'Hand');
+
+hand_handles(1) = scatter(data.MemoryRight, data.BurstyRight, 60, 'filled', ...
+        'MarkerFaceColor', toy_color, 'Marker', marker_shapes{1}, 'MarkerEdgeColor', 'black',...
+        'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
+hand_handles(2) = scatter(data.MemoryLeft, data.BurstyLeft, 60, 'filled', ...
+        'MarkerFaceColor', toy_color, 'Marker', marker_shapes{2}, 'MarkerEdgeColor', ...
+        'black', 'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
+
+for t = 1:length(toys)
+    toy_name = toys{t};
+    if strcmp(toy_name, 'bubbles')
+        set(bubbles_handles, 'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
+        elseif strcmp(toy_name, 'dino')
+            set(dino_handles, 'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
+            elseif strcmp(toy_name, 'klickity')
+        set(klickity_handles, 'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
+        elseif strcmp(toy_name, 'spinner')
+        set(spinner_handles, 'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
+    end
 % Save the figure in high quality
-saveas(fig, 'burstiness_label_average.png');%, 'Resolution', 300);  % High-quality PNG file
-
+fileName = fullfile(outputFolder, sprintf('burstiness_%d.png', toy_name));
+    
+    % Save the figure in high quality
+    saveas(fig, fileName);
+    set(bubbles_handles, 'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
+    set(dino_handles, 'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
+    set(klickity_handles, 'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
+    set(spinner_handles, 'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
+end
 % Close the figure to avoid cluttering
+% Hold off to finish the plot
+hold off;
 clf; close all;
-
 

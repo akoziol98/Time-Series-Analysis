@@ -30,7 +30,8 @@ importmat('burstyLabelData_mani_T3.mat');
 %importmat('ieiData_mani_T3.mat');
 importmat('babyCodes.mat');
 toys = {'bubbles', 'dino', 'klickity', 'spinner'};
-icis_colors = ["#2bc3db","#bfd739", "#fdb718", "#ef3c43"]; % Colors for each toy
+icis_colors = ["#2bc3db","#2bc3db", "#fdb718", "#fdb718"]; % Colors for each toy
+aff_colors = ["#2bc3db", "#fdb718"];
 outputFolder = 'burstiness_plots/toys';
 
 % Define marker shapes for right and left hands
@@ -124,24 +125,21 @@ ylim([-1 1])
 
 hand_lgd = legend(hand_handles, {'Right Hand', 'Left Hand'}, 'Location', 'best');
 
-
-for t = 1:length(toys)
-    toy_name = toys{t};
-    toy_color = icis_colors(t);
-    set(hand_handles, 'MarkerFaceColor',toy_color,'MarkerEdgeColor','black','MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
-    title(hand_lgd, toy_name);
-    if strcmp(toy_name, 'bubbles')
+affordances = ["graspable", "stationary"];
+for a = 1:length(affordances)
+    aff_name = affordances(a);
+    aff_color = aff_colors(a);
+    set(hand_handles, 'MarkerFaceColor',aff_color,'MarkerEdgeColor','black','MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
+    title(hand_lgd, aff_name);
+    if strcmp(aff_name, 'graspable')
         set(bubbles_handles, 'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
-        elseif strcmp(toy_name, 'dino')
-            set(dino_handles, 'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
-            elseif strcmp(toy_name, 'klickity')
+        set(dino_handles, 'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
+        elseif strcmp(aff_name, 'stationary')         
         set(klickity_handles, 'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
-        
-        elseif strcmp(toy_name, 'spinner')
         set(spinner_handles, 'MarkerFaceAlpha',1,'MarkerEdgeAlpha',1);
     end
 % Save the figure in high quality
-fileName = fullfile(outputFolder, sprintf('burstiness_%s.png', toy_name));
+fileName = fullfile(outputFolder, sprintf('burstiness_%s.png', aff_name));
     
     % Save the figure in high quality
     saveas(fig, fileName);
